@@ -16,17 +16,6 @@ datasource db {
 // ENUMS
 // -----------------------------------------------------------------
 
-enum PaymentMethodNetwork {
-  VISA
-  MASTERCARD
-  AMEX
-  DISCOVER
-  DINERS
-  UNIONPAY
-  JCB
-  TROY
-}
-
 enum MerchantStatus {
   ACTIVE
   INACTIVE

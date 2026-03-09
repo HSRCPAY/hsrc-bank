@@ -1,4 +1,4 @@
-import type { TCard } from "@/types"; // Veya projenizdeki uygun path
+import type { TCard } from "../types";
 
 // TCard tip tanımını genişletiyoruz (Scheme ekliyoruz)
 export type TSandboxCard = TCard & { scheme: string };

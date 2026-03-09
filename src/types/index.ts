@@ -1,3 +1,13 @@
+export enum EPaymentMethodNetwork {
+  MASTERCARD = "MASTERCARD",
+  VISA = "VISA",
+  AMEX = "AMEX",
+  DISCOVER = "DISCOVER",
+  JCB = "JCB",
+  UNIONPAY = "UNIONPAY",
+  TROY = "TROY",
+  DINERS = "DINERS"
+}
 
 export type TBin = {
   prefix: string;
@@ -7,7 +17,7 @@ export type TBin = {
   brand: string;
   country: string;
   issuer: string;
-  network: "MASTERCARD" | "VISA" | "AMEX" | "DISCOVER" | "JCB" | "UNIONPAY" | "TROY" | "DINERS" | "UNIONPAY";
+  network: EPaymentMethodNetwork;
 };
 
 export type TCard = {
