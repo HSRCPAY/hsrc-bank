@@ -1,4 +1,4 @@
-import { db } from "../../common/db";
+import { db } from "../common/db";
 import type { Merchant } from "@prisma/client";
 
 export class ApiKeyValidationRule {

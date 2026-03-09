@@ -32,14 +32,19 @@ enum TransactionStatus {
 }
 
 enum FlowType {
-  AUTOMATIC // 3D successful -> auth/capture immediately
-  MANUAL // 3D successful -> only verify, no auth/capture
+  AUTOMATIC // 3D Pay: 3D success -> auth/capture immediately
+  MANUAL    // 3D Model: 3D success -> only verify, merchant calls auth/capture later
 }
 
 enum ThreeDSecureStatus {
   PENDING
   SUCCESS
   FAILED
+}
+
+enum SecureMode {
+  SECURE     // 3D Secure flow with redirect
+  NONSECURE  // Direct processing, no 3D redirect
 }
 
 // -----------------------------------------------------------------
@@ -50,7 +55,7 @@ model Merchant {
   id         String         @id @default(uuid())
   name       String
   api_key    String         @unique
-  secret_key String         @unique // Hashed ideally, or plain for sandbox
+  secret_key String         @unique
   status     MerchantStatus @default(ACTIVE)
 
   transactions Transaction[]
@@ -74,9 +79,11 @@ model Transaction {
   card_last4 String
 
   status          TransactionStatus @default(PENDING_3D)
+  secure_mode     SecureMode        @default(SECURE)
   flow_type       FlowType          @default(AUTOMATIC)
-  is_auto_capture Boolean           @default(true) // true = Capture, false = Auth (Pre-auth)
-  return_url      String // HSRCPAY callback URL
+  is_auto_capture Boolean           @default(true) // true = Capture (Sale), false = Auth (Pre-auth)
+  return_url_ok   String // Callback URL on success
+  return_url_fail String // Callback URL on failure
 
   three_d_logs ThreeDSecureLog[]
   events       TransactionEventLog[]
@@ -92,7 +99,7 @@ model ThreeDSecureLog {
   transaction_id String
   transaction    Transaction @relation(fields: [transaction_id], references: [id])
 
-  verification_code String // Mock code shown on screen
+  verification_code String
   status            ThreeDSecureStatus @default(PENDING)
   payload           Json?
 

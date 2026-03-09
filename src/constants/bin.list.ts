@@ -1,12 +1,11 @@
 // ---------------------------------------------------------
-// SANDBOX DATA
-// Toplam 50 farklı Issuer (Kurum), Her biri için 5 BIN = 250 Kayıt
+// BIN Data - 50 Issuers, 5 BINs each = 250 Records
 // ---------------------------------------------------------
 
 import { EPaymentMethodNetwork, type TBin } from "../types";
 
 // prettier-ignore
-export const SandboxBinList: TBin[] = [
+export const BinList: TBin[] = [
   // 0.1. Phine Up LLC (US - Headquarters) - Teknoloji ve Yazılım Odaklı
   { prefix: "499100", iin: 499100, phone: "+13025550199", type: "CREDIT", brand: "PHINEUP ELITE", country: "US", issuer: "Phine Up LLC", network: EPaymentMethodNetwork.VISA },
   { prefix: "499101", iin: 499101, phone: "+13025550199", type: "DEBIT", brand: "PHINE CHECKING", country: "US", issuer: "Phine Up LLC", network: EPaymentMethodNetwork.VISA },

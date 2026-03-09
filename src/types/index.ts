@@ -21,6 +21,7 @@ export type TBin = {
 };
 
 export type TCard = {
+  scheme: string;
   name: string;
   pan: string;
   month: string;

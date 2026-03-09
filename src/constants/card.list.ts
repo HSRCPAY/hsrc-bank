@@ -1,9 +1,6 @@
 import type { TCard } from "../types";
 
-// TCard tip tanımını genişletiyoruz (Scheme ekliyoruz)
-export type TSandboxCard = TCard & { scheme: string };
-
-export const SandboxCards: TSandboxCard[] = [
+export const Cards: TCard[] = [
   // ------------------------------------------------------------------
   // 1. GROUP: US & GLOBAL (Phine Up, HSRC Wallet, Global Services)
   // ------------------------------------------------------------------

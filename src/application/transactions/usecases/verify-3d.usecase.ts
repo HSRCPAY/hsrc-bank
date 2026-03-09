@@ -1,8 +1,10 @@
 import { db } from "../../../domain/common/db";
+import { generateHash } from "../../../domain/common/hash";
+import type { TransactionStatus } from "@prisma/client";
 
 export class Verify3DUsecase {
   static async execute(transactionId: string, providedCode: string) {
-    // 1. Fetch transaction and its single active 3D log
+    // 1. Fetch transaction with 3D log and merchant (for secret_key)
     const tx = await db.transaction.findUnique({
       where: { id: transactionId },
       include: {
@@ -10,6 +12,7 @@ export class Verify3DUsecase {
           orderBy: { createdAt: "desc" },
           take: 1,
         },
+        merchant: true,
       },
     });
 
@@ -22,9 +25,8 @@ export class Verify3DUsecase {
       throw new Error("No active 3D session found.");
     }
 
-    // 2. Check the code
+    // 2. Check verification code
     if (log.verification_code !== providedCode) {
-      // Failed attempt
       await db.threeDSecureLog.update({
         where: { id: log.id },
         data: { status: "FAILED" },
@@ -42,10 +44,19 @@ export class Verify3DUsecase {
         },
       });
 
+      // Generate HMAC for fail callback
+      const hashFields = {
+        transaction_id: tx.id,
+        order_id: tx.order_id,
+        status: "FAILED",
+      };
+      const hash = generateHash(hashFields, tx.merchant.secret_key);
+
       return {
         success: false,
-        message: "Invalid Verification Code",
-        tx,
+        return_url: tx.return_url_fail,
+        hash,
+        tx: { ...tx, status: "FAILED" as TransactionStatus },
       };
     }
 
@@ -62,42 +73,47 @@ export class Verify3DUsecase {
       },
     });
 
-    // 4. Implement Core Payment Flow Rule: 3D Pay vs 3D Model
-    let nextStatus = tx.status; // Currently PENDING_3D
+    // 4. Apply flow logic
+    let nextStatus: TransactionStatus = "PENDING_3D";
 
-    if (tx.flow_type === "THREE_D_PAY") {
-      // In 3D_PAY, we automatically capture or auth immediately after 3D success.
+    if (tx.flow_type === "AUTOMATIC") {
+      // AUTOMATIC = 3D Pay: immediately auth or capture
       if (tx.is_auto_capture) {
         nextStatus = "CAPTURED";
         await db.transactionEventLog.create({
-          data: { transaction_id: tx.id, event_type: "PAYMENT_CAPTURED", payload: { method: "AUTO" } },
+          data: { transaction_id: tx.id, event_type: "PAYMENT_CAPTURED", payload: { trigger: "3D_AUTO" } },
         });
       } else {
         nextStatus = "AUTHORIZED";
         await db.transactionEventLog.create({
-          data: { transaction_id: tx.id, event_type: "PAYMENT_AUTHORIZED", payload: { method: "AUTO" } },
+          data: { transaction_id: tx.id, event_type: "PAYMENT_AUTHORIZED", payload: { trigger: "3D_AUTO" } },
         });
       }
-    } else if (tx.flow_type === "THREE_D_MODEL") {
-      // In 3D_MODEL, we just mark 3D as successful but DO NOT capture or auth.
-      // We wait for the merchant to call the Server-to-Server Auth/Capture endpoint.
-      // For HSRCBANK we can keep it as 'PENDING_3D' or create a new internal state like '3D_VERIFIED'.
-      // Since our enum is strict, let's keep it PENDING_3D or assume AUTHORIZED but amount blocked is 0.
-      // Better yet, let's just leave it as PENDING_3D, and the merchant will call capture with this tx_id.
-      // Actually, let's just leave it untouched but the log says 3D_SUCCESS. 
-      // Or we can add a status "3D_VERIFIED". Let's use AUTHORIZED without fund move for now, 
-      // but conceptually it's safer to wait for the next call.
+    } else if (tx.flow_type === "MANUAL") {
+      // MANUAL = 3D Model: only 3D verified, merchant calls auth/capture later
+      nextStatus = "AUTHORIZED";
+      await db.transactionEventLog.create({
+        data: { transaction_id: tx.id, event_type: "3D_VERIFIED_MANUAL", payload: { awaiting_merchant_action: true } },
+      });
     }
 
-    // Final Tx Update
     const updatedTx = await db.transaction.update({
       where: { id: tx.id },
       data: { status: nextStatus },
     });
 
+    // 5. Generate HMAC for success callback
+    const hashFields = {
+      order_id: tx.order_id,
+      status: nextStatus,
+      transaction_id: tx.id,
+    };
+    const hash = generateHash(hashFields, tx.merchant.secret_key);
+
     return {
       success: true,
-      message: "3D Verification Successful",
+      return_url: tx.return_url_ok,
+      hash,
       tx: updatedTx,
     };
   }
