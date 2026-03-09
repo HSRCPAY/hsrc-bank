@@ -31,9 +31,9 @@ enum TransactionStatus {
   VOIDED
 }
 
-enum CaptureMethod {
-  AUTOMATIC // 3D Pay 
-  MANUAL // 3D Model
+enum FlowType {
+  AUTOMATIC // 3D successful -> auth/capture immediately
+  MANUAL // 3D successful -> only verify, no auth/capture
 }
 
 enum ThreeDSecureStatus {
@@ -73,9 +73,10 @@ model Transaction {
   card_bin   String
   card_last4 String
 
-  status         TransactionStatus @default(PENDING_3D)
-  capture_method CaptureMethod     @default(AUTOMATIC) // 3D Pay by default
-  return_url     String // HSRCPAY callback URL
+  status          TransactionStatus @default(PENDING_3D)
+  flow_type       FlowType          @default(AUTOMATIC)
+  is_auto_capture Boolean           @default(true) // true = Capture, false = Auth (Pre-auth)
+  return_url      String // HSRCPAY callback URL
 
   three_d_logs ThreeDSecureLog[]
   events       TransactionEventLog[]
