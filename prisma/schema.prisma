@@ -1,0 +1,126 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+// Looking for ways to speed up your queries, or scale easily with your serverless or edge functions?
+// Try Prisma Accelerate: https://pris.ly/cli/accelerate-init
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+}
+
+// -----------------------------------------------------------------
+// ENUMS
+// -----------------------------------------------------------------
+
+enum PaymentMethodNetwork {
+  VISA
+  MASTERCARD
+  AMEX
+  DISCOVER
+  DINERS
+  UNIONPAY
+  JCB
+  TROY
+}
+
+enum MerchantStatus {
+  ACTIVE
+  INACTIVE
+  SUSPENDED
+}
+
+enum TransactionStatus {
+  PENDING_3D
+  AUTHORIZED
+  CAPTURED
+  FAILED
+  REFUNDED
+  VOIDED
+}
+
+enum CaptureMethod {
+  AUTOMATIC // 3D Pay 
+  MANUAL // 3D Model
+}
+
+enum ThreeDSecureStatus {
+  PENDING
+  SUCCESS
+  FAILED
+}
+
+// -----------------------------------------------------------------
+// MODELS
+// -----------------------------------------------------------------
+
+model Merchant {
+  id         String         @id @default(uuid())
+  name       String
+  api_key    String         @unique
+  secret_key String         @unique // Hashed ideally, or plain for sandbox
+  status     MerchantStatus @default(ACTIVE)
+
+  transactions Transaction[]
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@map("merchants")
+}
+
+model Transaction {
+  id          String   @id @default(uuid()) // Our Bank Reference
+  merchant_id String
+  merchant    Merchant @relation(fields: [merchant_id], references: [id])
+  order_id    String   @unique // HSRCPAY reference
+
+  amount   Int // In smallest currency unit (cents, kurus)
+  currency String @default("TRY")
+
+  card_bin   String
+  card_last4 String
+
+  status         TransactionStatus @default(PENDING_3D)
+  capture_method CaptureMethod     @default(AUTOMATIC) // 3D Pay by default
+  return_url     String // HSRCPAY callback URL
+
+  three_d_logs ThreeDSecureLog[]
+  events       TransactionEventLog[]
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@map("transactions")
+}
+
+model ThreeDSecureLog {
+  id             String      @id @default(uuid())
+  transaction_id String
+  transaction    Transaction @relation(fields: [transaction_id], references: [id])
+
+  verification_code String // Mock code shown on screen
+  status            ThreeDSecureStatus @default(PENDING)
+  payload           Json?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@map("three_d_secure_logs")
+}
+
+model TransactionEventLog {
+  id             String      @id @default(uuid())
+  transaction_id String
+  transaction    Transaction @relation(fields: [transaction_id], references: [id])
+
+  event_type String // e.g., 'PAYMENT_STARTED', '3D_COMPLETED', 'CAPTURE_EXECUTED'
+  payload    Json?
+
+  createdAt DateTime @default(now())
+
+  @@map("transaction_event_logs")
+}

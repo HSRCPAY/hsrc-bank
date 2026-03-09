@@ -1,0 +1,17 @@
+{
+  "name": "hsrc-bank",
+  "module": "index.ts",
+  "type": "module",
+  "private": true,
+  "devDependencies": {
+    "@types/bun": "latest"
+  },
+  "peerDependencies": {
+    "typescript": "^5"
+  },
+  "dependencies": {
+    "@prisma/client": "^7.4.2",
+    "elysia": "^1.4.27",
+    "prisma": "^7.4.2"
+  }
+}
