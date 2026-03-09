@@ -1,8 +1,15 @@
 {
   "name": "hsrc-bank",
-  "module": "index.ts",
+  "module": "src/index.ts",
   "type": "module",
   "private": true,
+  "scripts": {
+    "dev": "bun run --watch src/index.ts",
+    "db:push:local": "DATABASE_URL=postgres://postgres:postgres@localhost:5432/hsrcbank?schema=public bunx prisma db push",
+    "db:push:prod": "bunx prisma db push",
+    "db:migrate:local": "DATABASE_URL=postgres://postgres:postgres@localhost:5432/hsrcbank?schema=public bunx prisma migrate dev",
+    "db:migrate:prod": "bunx prisma migrate deploy"
+  },
   "devDependencies": {
     "@types/bun": "latest"
   },
